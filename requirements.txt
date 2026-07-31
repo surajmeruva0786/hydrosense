@@ -1,0 +1,30 @@
+# Core numerical / scientific stack
+numpy==1.26.4
+scipy==1.12.0
+pandas==2.2.1
+scikit-learn==1.5.0
+
+# Deep learning
+torch==2.2.0
+torchaudio==2.2.0
+tensorflow==2.16.1
+tensorflow-hub==0.16.1
+
+# Audio / signal processing
+librosa==0.10.1
+soundfile==0.12.1
+
+# Explainability
+shap==0.45.0
+grad-cam==1.5.0
+
+# Visualization / app
+matplotlib==3.8.3
+seaborn==0.13.2
+streamlit==1.33.0
+plotly==5.20.0
+
+# Utilities
+pyyaml==6.0.1
+tqdm==4.66.2
+pydantic==2.6.4
