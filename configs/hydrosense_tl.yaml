@@ -1,0 +1,44 @@
+# HydroSense-TL: transfer learning on a YAMNet (MobileNetV1 / AudioSet) backbone.
+# Backbone is frozen; only the classification head is trained by default.
+model: hydrosense_tl
+representation: log_mel
+num_classes: 5
+class_names: ["A", "B", "C", "D", "E"]
+sample_rate: 16000
+segment_length: 10.0
+seed: 42
+
+n_fft: 2048
+hop_length: 512
+n_mels: 128
+
+model_params:
+  backbone: yamnet
+  freeze_backbone: true
+  hidden_dim: 128
+  dropout: 0.3
+
+training:
+  epochs: 100
+  batch_size: 32
+  optimizer: adamw
+  lr: 5.0e-4
+  weight_decay: 1.0e-4
+  warmup_epochs: 5
+  early_stopping_patience: 15
+  mixed_precision: true
+  grad_clip_norm: 1.0
+  use_synthetic: true
+  class_weighted_loss: true
+
+augmentation:
+  prob: 0.5
+  specaugment:
+    freq_masks: 2
+    freq_mask_width: 20
+    time_masks: 2
+    time_mask_width: 40
+  mixup_alpha: 0.2
+  gaussian_noise_std: 0.005
+
+folds: 5

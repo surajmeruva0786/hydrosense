@@ -1,0 +1,44 @@
+# HydroSense-Base: custom 4-block 2D CNN, trained from scratch on mel-spectrograms.
+model: hydrosense_base
+representation: mel
+num_classes: 5
+class_names: ["A", "B", "C", "D", "E"]
+sample_rate: 16000
+segment_length: 10.0
+seed: 42
+
+n_fft: 2048
+hop_length: 512
+n_mels: 128
+
+model_params:
+  in_channels: 1
+  channels: [32, 64, 128, 256]
+  dropout1: 0.4
+  dropout2: 0.3
+  hidden_dim: 128
+
+training:
+  epochs: 100
+  batch_size: 32
+  optimizer: adamw
+  lr: 1.0e-3
+  weight_decay: 1.0e-4
+  warmup_epochs: 5
+  early_stopping_patience: 15
+  mixed_precision: true
+  grad_clip_norm: 1.0
+  use_synthetic: false
+  class_weighted_loss: true
+
+augmentation:
+  prob: 0.5
+  specaugment:
+    freq_masks: 2
+    freq_mask_width: 20
+    time_masks: 2
+    time_mask_width: 40
+  mixup_alpha: 0.2
+  gaussian_noise_std: 0.005
+
+folds: 5
