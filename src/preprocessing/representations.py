@@ -23,7 +23,7 @@ CQT_FMIN = 10.0
 CQT_N_BINS = 256
 N_MFCC = 40
 
-REPRESENTATIONS = ("mel", "log_mel", "cqt", "mfcc")
+REPRESENTATIONS = ("mel", "log_mel", "cqt", "mfcc", "waveform")
 
 
 def mel_spectrogram(waveform: np.ndarray, sample_rate: int) -> np.ndarray:
@@ -85,11 +85,18 @@ def mfcc_features(waveform: np.ndarray, sample_rate: int) -> np.ndarray:
     return np.concatenate([mfcc, delta, delta2], axis=0).astype(np.float32)
 
 
+def raw_waveform(waveform: np.ndarray, sample_rate: int) -> np.ndarray:  # noqa: ARG001
+    """Passthrough representation for HydroSense-TL, whose YAMNet backbone (README §7.3)
+    computes its own internal log-mel features directly from the raw waveform."""
+    return waveform.astype(np.float32)
+
+
 _DISPATCH = {
     "mel": mel_spectrogram,
     "log_mel": log_mel_spectrogram,
     "cqt": cqt_spectrogram,
     "mfcc": mfcc_features,
+    "waveform": raw_waveform,
 }
 
 
