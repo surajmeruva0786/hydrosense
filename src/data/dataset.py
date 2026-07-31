@@ -48,14 +48,19 @@ class ManifestDataset(Dataset):
 
         self.df = df
         self.transform = transform
-        self.base_dir = Path(base_dir) if base_dir else self.manifest_path.parent
+        # `segment_path` entries written by `src.preprocessing.run` are already
+        # absolute-or-cwd-relative paths (not relative to the manifest file), so
+        # only join with `base_dir` when the caller explicitly opts in.
+        self.base_dir = Path(base_dir) if base_dir else None
 
     def __len__(self) -> int:
         return len(self.df)
 
     def _resolve(self, segment_path: str) -> Path:
         p = Path(segment_path)
-        return p if p.is_absolute() else self.base_dir / p
+        if p.is_absolute() or self.base_dir is None:
+            return p
+        return self.base_dir / p
 
     def __getitem__(self, idx: int):
         row = self.df.iloc[idx]
