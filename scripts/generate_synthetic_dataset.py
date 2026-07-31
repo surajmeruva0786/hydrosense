@@ -68,7 +68,9 @@ def main() -> None:
 
     metadata_path = Path(args.output_dir) / "metadata.csv"
     with metadata_path.open("w", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(f, fieldnames=["recording_id", "file_path", "class_name", "duration_s"])
+        writer = csv.DictWriter(
+            f, fieldnames=["recording_id", "file_path", "class_name", "duration_s"]
+        )
         writer.writeheader()
         writer.writerows(records)
 

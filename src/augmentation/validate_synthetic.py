@@ -35,7 +35,12 @@ from src.utils.seed import set_seed  # noqa: E402
 logger = get_logger("augmentation.validate_synthetic")
 
 
-def load_class_segments(manifest_path: str | Path, class_name: str, split: str | None = None, max_samples: int | None = None) -> np.ndarray:
+def load_class_segments(
+    manifest_path: str | Path,
+    class_name: str,
+    split: str | None = None,
+    max_samples: int | None = None,
+) -> np.ndarray:
     df = pd.read_csv(manifest_path)
     df = df[df["class_name"] == class_name]
     if split is not None and "split" in df.columns:
@@ -64,7 +69,9 @@ def pca_projection(real: np.ndarray, synthetic: np.ndarray, output_path: str | P
     import matplotlib.pyplot as plt
     from sklearn.decomposition import PCA
 
-    features = np.concatenate([flatten_for_embedding(real), flatten_for_embedding(synthetic)], axis=0)
+    features = np.concatenate(
+        [flatten_for_embedding(real), flatten_for_embedding(synthetic)], axis=0
+    )
     proj = PCA(n_components=2, random_state=42).fit_transform(features)
     n_real = len(real)
 
@@ -85,10 +92,14 @@ def tsne_projection(real: np.ndarray, synthetic: np.ndarray, output_path: str | 
     import matplotlib.pyplot as plt
     from sklearn.manifold import TSNE
 
-    features = np.concatenate([flatten_for_embedding(real), flatten_for_embedding(synthetic)], axis=0)
+    features = np.concatenate(
+        [flatten_for_embedding(real), flatten_for_embedding(synthetic)], axis=0
+    )
     n_samples = features.shape[0]
     perplexity = min(30, max(2, n_samples // 4))
-    proj = TSNE(n_components=2, random_state=42, perplexity=perplexity, init="pca").fit_transform(features)
+    proj = TSNE(n_components=2, random_state=42, perplexity=perplexity, init="pca").fit_transform(
+        features
+    )
     n_real = len(real)
 
     plt.figure(figsize=(6, 5))
@@ -116,7 +127,9 @@ def discriminative_score(real: np.ndarray, synthetic: np.ndarray, seed: int = 42
         logger.warning("Too few samples (%d) for a reliable discriminative score.", len(x))
         return float("nan")
 
-    x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.3, random_state=seed, stratify=y)
+    x_train, x_test, y_train, y_test = train_test_split(
+        x, y, test_size=0.3, random_state=seed, stratify=y
+    )
     clf = RandomForestClassifier(n_estimators=100, random_state=seed)
     clf.fit(x_train, y_train)
     accuracy = clf.score(x_test, y_test)
@@ -147,7 +160,9 @@ def predictive_score(real: np.ndarray, synthetic: np.ndarray, seed: int = 42) ->
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
     parser.add_argument("--real_manifest", type=str, required=True)
     parser.add_argument("--synthetic_manifest", type=str, required=True)
     parser.add_argument("--class_name", type=str, required=True)
@@ -163,9 +178,18 @@ def main() -> None:
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    real = load_class_segments(args.real_manifest, args.class_name, split="train", max_samples=args.max_samples)
-    synthetic = load_class_segments(args.synthetic_manifest, args.class_name, max_samples=args.max_samples)
-    logger.info("Loaded %d real and %d synthetic segments for class '%s'", len(real), len(synthetic), args.class_name)
+    real = load_class_segments(
+        args.real_manifest, args.class_name, split="train", max_samples=args.max_samples
+    )
+    synthetic = load_class_segments(
+        args.synthetic_manifest, args.class_name, max_samples=args.max_samples
+    )
+    logger.info(
+        "Loaded %d real and %d synthetic segments for class '%s'",
+        len(real),
+        len(synthetic),
+        args.class_name,
+    )
 
     pca_projection(real, synthetic, output_dir / "pca.png")
     tsne_projection(real, synthetic, output_dir / "tsne.png")

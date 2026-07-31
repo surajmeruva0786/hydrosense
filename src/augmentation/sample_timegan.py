@@ -43,7 +43,9 @@ logger = get_logger("augmentation.sample_timegan")
 
 def load_timegan(checkpoint_path: str | Path, device: str = "cpu") -> tuple[TimeGAN, dict]:
     ckpt = torch.load(checkpoint_path, map_location=device, weights_only=False)
-    model = TimeGAN(feature_dim=ckpt["feature_dim"], hidden_dim=ckpt["hidden_dim"], noise_dim=ckpt["noise_dim"])
+    model = TimeGAN(
+        feature_dim=ckpt["feature_dim"], hidden_dim=ckpt["hidden_dim"], noise_dim=ckpt["noise_dim"]
+    )
     model.load_state_dict(ckpt["state_dict"])
     model.to(device).eval()
     return model, ckpt
@@ -53,14 +55,18 @@ def sample_waveforms(model: TimeGAN, ckpt: dict, n_samples: int, device: str = "
     """Generate `n_samples` synthetic clips of `ckpt['clip_seconds']`, denormalised to waveform range."""
     norm_stats = ckpt["norm_stats"]
     seq_len = norm_stats["seq_len"]
-    frames = model.generate(n_samples, seq_len, device=device).cpu().numpy()  # (N, seq_len, frame_samples) in [0,1]
+    frames = (
+        model.generate(n_samples, seq_len, device=device).cpu().numpy()
+    )  # (N, seq_len, frame_samples) in [0,1]
 
     data_min, data_max = norm_stats["data_min"], norm_stats["data_max"]
     frames = frames * (data_max - data_min + 1e-8) + data_min
     return np.stack([unframe_waveform(f) for f in frames])
 
 
-def assemble_segments(clips: np.ndarray, sample_rate: int, segment_length: float, seed: int = 42) -> np.ndarray:
+def assemble_segments(
+    clips: np.ndarray, sample_rate: int, segment_length: float, seed: int = 42
+) -> np.ndarray:
     """Concatenate randomly-ordered synthetic clips end-to-end into fixed-length segments."""
     rng = np.random.default_rng(seed)
     target_samples = int(segment_length * sample_rate)
@@ -80,16 +86,32 @@ def assemble_segments(clips: np.ndarray, sample_rate: int, segment_length: float
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
     parser.add_argument("--checkpoints_dir", type=str, default="data/synthetic")
     parser.add_argument("--classes", nargs="+", default=["D", "E"])
-    parser.add_argument("--class_names", type=str, default="A,B,C,D,E", help="Full ordered class list -> label index")
-    parser.add_argument("--n_samples", type=int, default=500, help="Number of synthetic clips to draw per class")
-    parser.add_argument("--representation", type=str, default="mel", choices=["mel", "log_mel", "cqt", "mfcc", "waveform"])
+    parser.add_argument(
+        "--class_names",
+        type=str,
+        default="A,B,C,D,E",
+        help="Full ordered class list -> label index",
+    )
+    parser.add_argument(
+        "--n_samples", type=int, default=500, help="Number of synthetic clips to draw per class"
+    )
+    parser.add_argument(
+        "--representation",
+        type=str,
+        default="mel",
+        choices=["mel", "log_mel", "cqt", "mfcc", "waveform"],
+    )
     parser.add_argument("--segment_length", type=float, default=10.0)
     parser.add_argument("--sample_rate", type=int, default=16000)
     parser.add_argument("--output_dir", type=str, default="data/synthetic")
-    parser.add_argument("--device", type=str, default="cuda" if torch.cuda.is_available() else "cpu")
+    parser.add_argument(
+        "--device", type=str, default="cuda" if torch.cuda.is_available() else "cpu"
+    )
     parser.add_argument("--seed", type=int, default=42)
     return parser.parse_args()
 
@@ -105,13 +127,25 @@ def main() -> None:
     for class_name in args.classes:
         ckpt_path = Path(args.checkpoints_dir) / f"timegan_{class_name}.pt"
         if not ckpt_path.exists():
-            logger.warning("No TimeGAN checkpoint for class '%s' at %s; skipping. Run train_timegan.py first.", class_name, ckpt_path)
+            logger.warning(
+                "No TimeGAN checkpoint for class '%s' at %s; skipping. Run train_timegan.py first.",
+                class_name,
+                ckpt_path,
+            )
             continue
 
         model, ckpt = load_timegan(ckpt_path, device=args.device)
         clips = sample_waveforms(model, ckpt, args.n_samples, device=args.device)
-        segments = assemble_segments(clips, ckpt.get("sample_rate", args.sample_rate), args.segment_length, args.seed)
-        logger.info("Class '%s': sampled %d clips -> %d synthetic %.1fs segments", class_name, len(clips), len(segments), args.segment_length)
+        segments = assemble_segments(
+            clips, ckpt.get("sample_rate", args.sample_rate), args.segment_length, args.seed
+        )
+        logger.info(
+            "Class '%s': sampled %d clips -> %d synthetic %.1fs segments",
+            class_name,
+            len(clips),
+            len(segments),
+            args.segment_length,
+        )
 
         class_dir = output_dir / args.representation / class_name
         class_dir.mkdir(parents=True, exist_ok=True)

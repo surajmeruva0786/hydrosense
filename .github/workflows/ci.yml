@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+          cache-dependency-path: |
+            requirements.txt
+            requirements-dev.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-dev.txt
+
+      - name: Lint (ruff)
+        run: ruff check src tests scripts app
+
+      - name: Format check (black)
+        run: black --check src tests scripts app
+
+      - name: Run tests
+        run: pytest tests/ -v --cov=src --cov-report=term-missing
+
+      - name: Smoke-test end-to-end pipeline on synthetic data
+        run: |
+          python scripts/generate_synthetic_dataset.py --output_dir data/raw/shipsear_ci --counts "A=3,B=3,C=3,D=3,E=3" --min_duration 15 --max_duration 20
+          python -m src.preprocessing.run --input_dir data/raw/shipsear_ci --output_dir data/processed --sr 16000 --segment_length 10.0 --overlap 0.5 --representation mel --n_folds 2
+          python -m src.training.train --model hydrosense_base --representation mel --folds 2 --epochs 1 --batch_size 4 --output_dir runs/ci_smoke --max_folds_to_run 1
+          python -m src.evaluation.evaluate --checkpoint runs/ci_smoke/best.ckpt --output_dir results/ci_smoke

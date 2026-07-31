@@ -55,7 +55,9 @@ class GradCAM:
         score.backward(retain_graph=False)
 
         if self._activations is None or self._gradients is None:
-            raise RuntimeError("Grad-CAM hooks did not fire; check that `target_layer` is on the forward path.")
+            raise RuntimeError(
+                "Grad-CAM hooks did not fire; check that `target_layer` is on the forward path."
+            )
 
         weights = self._gradients.mean(dim=(2, 3), keepdim=True)  # (B, C, 1, 1)
         cam = F.relu((weights * self._activations).sum(dim=1, keepdim=True))  # (B, 1, h, w)
@@ -70,7 +72,9 @@ class GradCAM:
         return cam, class_idx
 
 
-def overlay_heatmap(spectrogram: np.ndarray, heatmap: np.ndarray, alpha: float = 0.45) -> np.ndarray:
+def overlay_heatmap(
+    spectrogram: np.ndarray, heatmap: np.ndarray, alpha: float = 0.45
+) -> np.ndarray:
     """Blend a Grad-CAM heatmap over a normalised (freq, time) spectrogram for visualisation.
 
     Returns an RGB array in [0, 1] suitable for `matplotlib.pyplot.imshow`.

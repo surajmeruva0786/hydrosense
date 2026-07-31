@@ -81,7 +81,9 @@ def gaussian_noise(batch: torch.Tensor, std: float, prob: float = 0.5) -> torch.
     """Additive Gaussian noise per-sample with probability `prob`."""
     if std <= 0:
         return batch
-    mask = (torch.rand(batch.shape[0], device=batch.device) < prob).view(-1, *([1] * (batch.dim() - 1)))
+    mask = (torch.rand(batch.shape[0], device=batch.device) < prob).view(
+        -1, *([1] * (batch.dim() - 1))
+    )
     noise = torch.randn_like(batch) * std
     return batch + noise * mask
 

@@ -50,7 +50,14 @@ class SEBlock(nn.Module):
 class SEConvBlock(nn.Module):
     """`ConvBlock` with an SE block inserted before pooling (README §7.2)."""
 
-    def __init__(self, in_channels: int, out_channels: int, kernel_size: int = 3, pool: int = 2, se_reduction: int = 16):
+    def __init__(
+        self,
+        in_channels: int,
+        out_channels: int,
+        kernel_size: int = 3,
+        pool: int = 2,
+        se_reduction: int = 16,
+    ):
         super().__init__()
         self.conv = nn.Conv2d(in_channels, out_channels, kernel_size, padding=kernel_size // 2)
         self.bn = nn.BatchNorm2d(out_channels)

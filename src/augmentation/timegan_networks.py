@@ -23,7 +23,14 @@ from torch import nn
 
 
 class _GRUEncoder(nn.Module):
-    def __init__(self, input_dim: int, hidden_dim: int, num_layers: int, output_dim: int, output_activation: str | None = "sigmoid"):
+    def __init__(
+        self,
+        input_dim: int,
+        hidden_dim: int,
+        num_layers: int,
+        output_dim: int,
+        output_activation: str | None = "sigmoid",
+    ):
         super().__init__()
         self.gru = nn.GRU(input_dim, hidden_dim, num_layers=num_layers, batch_first=True)
         self.head = nn.Linear(hidden_dim, output_dim)
@@ -41,7 +48,9 @@ class Embedder(_GRUEncoder):
     """Raw framed waveform -> latent embedding sequence (bounded to [0, 1])."""
 
     def __init__(self, feature_dim: int, hidden_dim: int, num_layers: int = 3):
-        super().__init__(feature_dim, hidden_dim, num_layers, hidden_dim, output_activation="sigmoid")
+        super().__init__(
+            feature_dim, hidden_dim, num_layers, hidden_dim, output_activation="sigmoid"
+        )
 
 
 class Recovery(_GRUEncoder):
@@ -67,7 +76,9 @@ class Supervisor(_GRUEncoder):
     """
 
     def __init__(self, hidden_dim: int, num_layers: int = 2):
-        super().__init__(hidden_dim, hidden_dim, num_layers, hidden_dim, output_activation="sigmoid")
+        super().__init__(
+            hidden_dim, hidden_dim, num_layers, hidden_dim, output_activation="sigmoid"
+        )
 
 
 class Discriminator(_GRUEncoder):
@@ -80,7 +91,13 @@ class Discriminator(_GRUEncoder):
 class TimeGAN(nn.Module):
     """Bundles the five TimeGAN sub-networks for a single (class-specific) generator."""
 
-    def __init__(self, feature_dim: int, hidden_dim: int = 24, noise_dim: int | None = None, num_layers: int = 3):
+    def __init__(
+        self,
+        feature_dim: int,
+        hidden_dim: int = 24,
+        noise_dim: int | None = None,
+        num_layers: int = 3,
+    ):
         super().__init__()
         noise_dim = noise_dim or feature_dim
         self.feature_dim = feature_dim

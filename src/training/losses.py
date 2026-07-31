@@ -15,6 +15,8 @@ def build_loss(class_weights: np.ndarray | None = None, device: str = "cpu") -> 
     return nn.CrossEntropyLoss(weight=weight_tensor)
 
 
-def mixup_loss(criterion: nn.Module, logits: torch.Tensor, y_a: torch.Tensor, y_b: torch.Tensor, lam: float) -> torch.Tensor:
+def mixup_loss(
+    criterion: nn.Module, logits: torch.Tensor, y_a: torch.Tensor, y_b: torch.Tensor, lam: float
+) -> torch.Tensor:
     """Convex combination of the loss against each of a Mixup pair's labels (README §8 Mixup)."""
     return lam * criterion(logits, y_a) + (1.0 - lam) * criterion(logits, y_b)

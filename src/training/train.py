@@ -40,16 +40,22 @@ from src.training.losses import build_loss, mixup_loss  # noqa: E402
 from src.training.scheduler import build_warmup_cosine_scheduler  # noqa: E402
 from src.utils.config import load_config, save_config  # noqa: E402
 from src.utils.logging_utils import get_logger  # noqa: E402
-from src.utils.metrics import aggregate_fold_metrics, compute_metrics  # noqa: E402
+from src.utils.metrics import compute_metrics  # noqa: E402
 from src.utils.seed import set_seed  # noqa: E402
 
 logger = get_logger("training.train")
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--model", type=str, default="hydrosense_base",
-                         choices=["hydrosense_base", "hydrosense_se", "hydrosense_tl"])
+    parser = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
+    parser.add_argument(
+        "--model",
+        type=str,
+        default="hydrosense_base",
+        choices=["hydrosense_base", "hydrosense_se", "hydrosense_tl"],
+    )
     parser.add_argument("--representation", type=str, default="mel")
     parser.add_argument("--processed_dir", type=str, default="data/processed")
     parser.add_argument("--synthetic_dir", type=str, default="data/synthetic")
@@ -58,10 +64,22 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--batch_size", type=int, default=32)
     parser.add_argument("--use_synthetic", action="store_true")
     parser.add_argument("--output_dir", type=str, required=True)
-    parser.add_argument("--config", type=str, default=None, help="Override config YAML path (defaults to configs/<model>.yaml)")
-    parser.add_argument("--device", type=str, default="cuda" if torch.cuda.is_available() else "cpu")
+    parser.add_argument(
+        "--config",
+        type=str,
+        default=None,
+        help="Override config YAML path (defaults to configs/<model>.yaml)",
+    )
+    parser.add_argument(
+        "--device", type=str, default="cuda" if torch.cuda.is_available() else "cpu"
+    )
     parser.add_argument("--num_workers", type=int, default=0)
-    parser.add_argument("--max_folds_to_run", type=int, default=None, help="Debug: cap the number of folds actually trained.")
+    parser.add_argument(
+        "--max_folds_to_run",
+        type=int,
+        default=None,
+        help="Debug: cap the number of folds actually trained.",
+    )
     return parser.parse_args()
 
 
@@ -106,15 +124,26 @@ def _build_datasets(config: dict, args: argparse.Namespace, fold: int):
         if synth_manifest.exists():
             synth_ds = ManifestDataset(synth_manifest, transform=transform)
             train_ds = ConcatDataset([train_ds, synth_ds])
-            logger.info("Fold %d: added %d synthetic (TimeGAN) training segments", fold, len(synth_ds))
+            logger.info(
+                "Fold %d: added %d synthetic (TimeGAN) training segments", fold, len(synth_ds)
+            )
         else:
-            logger.warning("use_synthetic=True but %s not found; run src.augmentation.train_timegan first", synth_manifest)
+            logger.warning(
+                "use_synthetic=True but %s not found; run src.augmentation.train_timegan first",
+                synth_manifest,
+            )
 
-    class_weights = full_train.class_weights(config["num_classes"]) if config["training"].get("class_weighted_loss", True) else None
+    class_weights = (
+        full_train.class_weights(config["num_classes"])
+        if config["training"].get("class_weighted_loss", True)
+        else None
+    )
     return train_ds, val_ds, class_weights
 
 
-def _run_epoch(model, loader, criterion, optimizer, scheduler, augment_cfg, device, scaler, train: bool):
+def _run_epoch(
+    model, loader, criterion, optimizer, scheduler, augment_cfg, device, scaler, train: bool
+):
     model.train(train)
     total_loss = 0.0
     all_labels, all_preds, all_probs = [], [], []
@@ -126,7 +155,9 @@ def _run_epoch(model, loader, criterion, optimizer, scheduler, augment_cfg, devi
         if train:
             x, y_a, y_b, lam = apply_training_augmentation(x, y, augment_cfg)
             optimizer.zero_grad(set_to_none=True)
-            with torch.autocast(device_type="cuda" if device == "cuda" else "cpu", enabled=(device == "cuda")):
+            with torch.autocast(
+                device_type="cuda" if device == "cuda" else "cpu", enabled=(device == "cuda")
+            ):
                 logits = model(x)
                 loss = mixup_loss(criterion, logits, y_a, y_b, lam)
 
@@ -182,8 +213,18 @@ def _train_torch_cv(config: dict, args: argparse.Namespace) -> dict:
             logger.warning("Fold %d has an empty validation split; skipping.", fold)
             continue
 
-        train_loader = DataLoader(train_ds, batch_size=config["training"]["batch_size"], shuffle=True, num_workers=args.num_workers)
-        val_loader = DataLoader(val_ds, batch_size=config["training"]["batch_size"], shuffle=False, num_workers=args.num_workers)
+        train_loader = DataLoader(
+            train_ds,
+            batch_size=config["training"]["batch_size"],
+            shuffle=True,
+            num_workers=args.num_workers,
+        )
+        val_loader = DataLoader(
+            val_ds,
+            batch_size=config["training"]["batch_size"],
+            shuffle=False,
+            num_workers=args.num_workers,
+        )
 
         model = build_model(config).to(device)
         criterion = build_loss(class_weights, device=device)
@@ -195,16 +236,42 @@ def _train_torch_cv(config: dict, args: argparse.Namespace) -> dict:
         scheduler = build_warmup_cosine_scheduler(
             optimizer, config["training"]["epochs"], config["training"]["warmup_epochs"]
         )
-        scaler = torch.cuda.amp.GradScaler() if (device == "cuda" and config["training"].get("mixed_precision")) else None
-        early_stopping = EarlyStopping(patience=config["training"]["early_stopping_patience"], mode="max")
+        scaler = (
+            torch.cuda.amp.GradScaler()
+            if (device == "cuda" and config["training"].get("mixed_precision"))
+            else None
+        )
+        early_stopping = EarlyStopping(
+            patience=config["training"]["early_stopping_patience"], mode="max"
+        )
 
         fold_dir = output_dir / f"fold_{fold}"
         best_fold_ckpt = fold_dir / "best.ckpt"
 
         for epoch in range(config["training"]["epochs"]):
             t0 = time.time()
-            train_loss, *_ = _run_epoch(model, train_loader, criterion, optimizer, scheduler, augment_cfg, device, scaler, train=True)
-            val_loss, y_true, y_pred, y_prob = _run_epoch(model, val_loader, criterion, optimizer, None, augment_cfg, device, None, train=False)
+            train_loss, *_ = _run_epoch(
+                model,
+                train_loader,
+                criterion,
+                optimizer,
+                scheduler,
+                augment_cfg,
+                device,
+                scaler,
+                train=True,
+            )
+            val_loss, y_true, y_pred, y_prob = _run_epoch(
+                model,
+                val_loader,
+                criterion,
+                optimizer,
+                None,
+                augment_cfg,
+                device,
+                None,
+                train=False,
+            )
 
             metrics = compute_metrics(y_true, y_pred, y_prob, config["class_names"])
             is_best = early_stopping.step(metrics["macro_f1"])
@@ -213,13 +280,21 @@ def _train_torch_cv(config: dict, args: argparse.Namespace) -> dict:
 
             logger.info(
                 "fold=%d epoch=%d/%d train_loss=%.4f val_loss=%.4f macro_f1=%.4f acc=%.4f (%.1fs)%s",
-                fold, epoch + 1, config["training"]["epochs"], train_loss, val_loss,
-                metrics["macro_f1"], metrics["accuracy"], time.time() - t0,
+                fold,
+                epoch + 1,
+                config["training"]["epochs"],
+                train_loss,
+                val_loss,
+                metrics["macro_f1"],
+                metrics["accuracy"],
+                time.time() - t0,
                 " *" if is_best else "",
             )
 
             if early_stopping.should_stop:
-                logger.info("Early stopping at epoch %d (patience=%d)", epoch + 1, early_stopping.patience)
+                logger.info(
+                    "Early stopping at epoch %d (patience=%d)", epoch + 1, early_stopping.patience
+                )
                 break
 
         fold_metrics.append({"fold": fold, "macro_f1": early_stopping.best_score or 0.0})
@@ -231,7 +306,12 @@ def _train_torch_cv(config: dict, args: argparse.Namespace) -> dict:
         import shutil
 
         shutil.copy(best_ckpt_path, output_dir / "best.ckpt")
-        logger.info("Best checkpoint overall (macro_f1=%.4f): %s -> %s", best_macro_f1, best_ckpt_path, output_dir / "best.ckpt")
+        logger.info(
+            "Best checkpoint overall (macro_f1=%.4f): %s -> %s",
+            best_macro_f1,
+            best_ckpt_path,
+            output_dir / "best.ckpt",
+        )
 
     summary = {"per_fold": fold_metrics, "best_macro_f1": best_macro_f1}
     with (output_dir / "cv_summary.json").open("w", encoding="utf-8") as f:
@@ -281,13 +361,18 @@ def _train_tl(config: dict, args: argparse.Namespace) -> dict:
 
     callbacks = [
         tf.keras.callbacks.EarlyStopping(
-            monitor="val_loss", patience=config["training"]["early_stopping_patience"], restore_best_weights=True
+            monitor="val_loss",
+            patience=config["training"]["early_stopping_patience"],
+            restore_best_weights=True,
         ),
-        tf.keras.callbacks.ModelCheckpoint(str(output_dir / "best.weights.h5"), save_weights_only=True, save_best_only=True),
+        tf.keras.callbacks.ModelCheckpoint(
+            str(output_dir / "best.weights.h5"), save_weights_only=True, save_best_only=True
+        ),
     ]
 
-    history = model.fit(
-        x_train, y_train,
+    model.fit(
+        x_train,
+        y_train,
         validation_data=(x_val, y_val),
         epochs=config["training"]["epochs"],
         batch_size=config["training"]["batch_size"],
@@ -299,7 +384,10 @@ def _train_tl(config: dict, args: argparse.Namespace) -> dict:
     y_pred = y_prob.argmax(axis=1)
     metrics = compute_metrics(y_val, y_pred, y_prob, config["class_names"])
 
-    summary = {"per_fold": [{"fold": 0, "macro_f1": metrics["macro_f1"]}], "best_macro_f1": metrics["macro_f1"]}
+    summary = {
+        "per_fold": [{"fold": 0, "macro_f1": metrics["macro_f1"]}],
+        "best_macro_f1": metrics["macro_f1"],
+    }
     with (output_dir / "cv_summary.json").open("w", encoding="utf-8") as f:
         json.dump(summary, f, indent=2)
 
@@ -311,7 +399,12 @@ def main() -> None:
     config = _resolve_config(args)
     set_seed(config["seed"])
 
-    logger.info("Training %s on representation=%s -> %s", config["model"], config["representation"], args.output_dir)
+    logger.info(
+        "Training %s on representation=%s -> %s",
+        config["model"],
+        config["representation"],
+        args.output_dir,
+    )
 
     if config["model"] == "hydrosense_tl":
         summary = _train_tl(config, args)

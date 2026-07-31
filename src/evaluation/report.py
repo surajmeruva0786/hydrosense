@@ -8,7 +8,9 @@ from pathlib import Path
 import numpy as np
 
 
-def confusion_matrix_to_markdown(confusion_matrix: list[list[int]], class_names: list[str], normalize: bool = True) -> str:
+def confusion_matrix_to_markdown(
+    confusion_matrix: list[list[int]], class_names: list[str], normalize: bool = True
+) -> str:
     """Render a confusion matrix as a Markdown table, normalised row-wise by default
     (matches the `True_X` / `Pred_X` table format in README §16)."""
     cm = np.array(confusion_matrix, dtype=float)
@@ -66,7 +68,9 @@ def write_report(metrics: dict, output_dir: str | Path) -> dict[str, Path]:
     ]
     for name in class_names:
         pc = metrics["per_class"][name]
-        lines.append(f"| {name} | {pc['precision']:.3f} | {pc['recall']:.3f} | {pc['f1']:.3f} | {pc['support']} |")
+        lines.append(
+            f"| {name} | {pc['precision']:.3f} | {pc['recall']:.3f} | {pc['f1']:.3f} | {pc['support']} |"
+        )
 
     lines += [
         "",

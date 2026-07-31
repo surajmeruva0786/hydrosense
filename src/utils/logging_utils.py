@@ -7,7 +7,9 @@ import sys
 from pathlib import Path
 
 
-def get_logger(name: str, log_file: str | Path | None = None, level: int = logging.INFO) -> logging.Logger:
+def get_logger(
+    name: str, log_file: str | Path | None = None, level: int = logging.INFO
+) -> logging.Logger:
     """Return a configured logger that writes to stdout, and optionally to a file.
 
     Safe to call repeatedly with the same `name` (e.g. across CV folds) —
@@ -17,7 +19,9 @@ def get_logger(name: str, log_file: str | Path | None = None, level: int = loggi
     logger.setLevel(level)
 
     if not logger.handlers:
-        fmt = logging.Formatter("%(asctime)s | %(levelname)-7s | %(name)s | %(message)s", "%H:%M:%S")
+        fmt = logging.Formatter(
+            "%(asctime)s | %(levelname)-7s | %(name)s | %(message)s", "%H:%M:%S"
+        )
 
         stream_handler = logging.StreamHandler(sys.stdout)
         stream_handler.setFormatter(fmt)

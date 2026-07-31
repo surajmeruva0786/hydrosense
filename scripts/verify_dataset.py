@@ -48,7 +48,10 @@ def main() -> int:
         return 1
 
     if not metadata_path.exists():
-        logger.error("Missing %s — expected columns: recording_id,file_path,class_name,duration_s", metadata_path)
+        logger.error(
+            "Missing %s — expected columns: recording_id,file_path,class_name,duration_s",
+            metadata_path,
+        )
         return 1
 
     try:

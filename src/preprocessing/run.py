@@ -38,13 +38,17 @@ DEFAULT_CLASS_NAMES = ["A", "B", "C", "D", "E"]
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
     parser.add_argument("--input_dir", type=str, required=True)
     parser.add_argument("--output_dir", type=str, required=True)
     parser.add_argument("--sr", type=int, default=16000)
     parser.add_argument("--segment_length", type=float, default=10.0)
     parser.add_argument("--overlap", type=float, default=0.5)
-    parser.add_argument("--representation", type=str, default="mel", choices=["mel", "log_mel", "cqt", "mfcc"])
+    parser.add_argument(
+        "--representation", type=str, default="mel", choices=["mel", "log_mel", "cqt", "mfcc"]
+    )
     parser.add_argument("--n_folds", type=int, default=5)
     parser.add_argument("--test_fraction", type=float, default=0.20)
     parser.add_argument("--seed", type=int, default=42)
@@ -77,7 +81,11 @@ def process_recording(
 
     keep_silence = class_name == "E"  # ambient/no-vessel: silence *is* the signal (README §6)
     segments = segment_and_filter_silence(
-        conditioned, sr, segment_length_s=segment_length, overlap=overlap, keep_silence_for_class=keep_silence
+        conditioned,
+        sr,
+        segment_length_s=segment_length,
+        overlap=overlap,
+        keep_silence_for_class=keep_silence,
     )
 
     rows = []

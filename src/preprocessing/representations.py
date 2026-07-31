@@ -100,10 +100,14 @@ _DISPATCH = {
 }
 
 
-def compute_representation(waveform: np.ndarray, sample_rate: int, representation: str) -> np.ndarray:
+def compute_representation(
+    waveform: np.ndarray, sample_rate: int, representation: str
+) -> np.ndarray:
     """Dispatch to one of the functions above by name (`configs/*.yaml: representation`)."""
     if representation not in _DISPATCH:
-        raise ValueError(f"Unknown representation '{representation}'. Expected one of {REPRESENTATIONS}.")
+        raise ValueError(
+            f"Unknown representation '{representation}'. Expected one of {REPRESENTATIONS}."
+        )
     return _DISPATCH[representation](waveform, sample_rate)
 
 

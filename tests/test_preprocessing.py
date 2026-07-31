@@ -8,7 +8,12 @@ from src.preprocessing.representations import (
     mel_spectrogram,
 )
 from src.preprocessing.segmentation import is_silent, segment_and_filter_silence, segment_waveform
-from src.preprocessing.signal_conditioning import bandpass_filter, condition_signal, downmix_to_mono, resample
+from src.preprocessing.signal_conditioning import (
+    bandpass_filter,
+    condition_signal,
+    downmix_to_mono,
+    resample,
+)
 
 
 def test_downmix_to_mono_averages_channels():
@@ -56,7 +61,9 @@ def test_segment_and_filter_silence_drops_quiet_segments():
     loud = np.ones(16000)
     silent = np.zeros(16000)
     waveform = np.concatenate([loud, silent, loud])
-    segments = segment_and_filter_silence(waveform, sample_rate=16000, segment_length_s=1.0, overlap=0.0)
+    segments = segment_and_filter_silence(
+        waveform, sample_rate=16000, segment_length_s=1.0, overlap=0.0
+    )
     assert all(not is_silent(s.waveform) for s in segments)
 
 

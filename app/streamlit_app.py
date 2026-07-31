@@ -11,7 +11,6 @@ for live demonstration to NSTL scientists (README §12).
 
 from __future__ import annotations
 
-import json
 import sys
 import tempfile
 from pathlib import Path
@@ -32,13 +31,20 @@ from app.components import (  # noqa: E402
 from src.data.dataset import ManifestDataset  # noqa: E402
 from src.data.transforms import build_default_transform  # noqa: E402
 from src.models.registry import build_model  # noqa: E402
-from src.preprocessing.representations import compute_representation, expected_num_frames  # noqa: E402
+from src.preprocessing.representations import (  # noqa: E402
+    compute_representation,
+    expected_num_frames,
+)
 from src.preprocessing.segmentation import segment_and_filter_silence  # noqa: E402
 from src.preprocessing.signal_conditioning import condition_signal  # noqa: E402
 from src.training.checkpoint import load_checkpoint  # noqa: E402
 from src.utils.config import load_config  # noqa: E402
 from src.xai.gradcam import GradCAM, overlay_heatmap  # noqa: E402
-from src.xai.shap_explainer import build_background, compute_shap_values, per_band_attribution  # noqa: E402
+from src.xai.shap_explainer import (  # noqa: E402
+    build_background,
+    compute_shap_values,
+    per_band_attribution,
+)
 from src.xai.spectral_peaks import acoustic_sanity_check  # noqa: E402
 
 st.set_page_config(page_title="HydroSense", page_icon="🌊", layout="wide")
@@ -65,7 +71,9 @@ def _prepare_clip(audio_bytes: bytes, config: dict):
 
     waveform, orig_sr = sf.read(tmp_path, dtype="float32", always_2d=False)
     conditioned, sr = condition_signal(np.asarray(waveform), orig_sr, config["sample_rate"])
-    segments = segment_and_filter_silence(conditioned, sr, segment_length_s=config["segment_length"], overlap=0.0)
+    segments = segment_and_filter_silence(
+        conditioned, sr, segment_length_s=config["segment_length"], overlap=0.0
+    )
 
     if not segments:
         return None, tmp_path
@@ -76,7 +84,9 @@ def _prepare_clip(audio_bytes: bytes, config: dict):
 
 def main() -> None:
     st.title("🌊 HydroSense")
-    st.caption("Explainable passive sonar vessel classification — Grad-CAM + SHAP on every prediction.")
+    st.caption(
+        "Explainable passive sonar vessel classification — Grad-CAM + SHAP on every prediction."
+    )
 
     with st.sidebar:
         st.header("Model")
@@ -99,7 +109,9 @@ def main() -> None:
         return
 
     model, config = _load_model(checkpoint_path)
-    st.success(f"Loaded **{config['model']}** ({config['representation']} representation, {config['num_classes']} classes)")
+    st.success(
+        f"Loaded **{config['model']}** ({config['representation']} representation, {config['num_classes']} classes)"
+    )
 
     uploaded = st.file_uploader("Upload a hydrophone recording (.wav)", type=["wav"])
     if uploaded is None:
@@ -148,11 +160,15 @@ def main() -> None:
     if compute_shap:
         manifest_path = Path("data/processed") / config["representation"] / "manifest.csv"
         if not manifest_path.exists():
-            st.warning(f"No manifest found at {manifest_path} to draw a SHAP background sample from.")
+            st.warning(
+                f"No manifest found at {manifest_path} to draw a SHAP background sample from."
+            )
         else:
             with st.spinner("Computing SHAP attribution..."):
                 background_ds = ManifestDataset(manifest_path, transform=transform, split="train")
-                background = build_background(background_ds, n_background=min(30, len(background_ds)))
+                background = build_background(
+                    background_ds, n_background=min(30, len(background_ds))
+                )
                 shap_values = compute_shap_values(model, background, x.detach())
                 profile = per_band_attribution(shap_values, int(top3_idx[0]))
             st.pyplot(plot_shap_bar(profile, predicted_class))

@@ -52,8 +52,20 @@ def test_macro_roc_auc_returns_nan_when_class_absent():
 
 def test_aggregate_fold_metrics_mean_std():
     fold_metrics = [
-        {"accuracy": 0.8, "macro_f1": 0.7, "weighted_f1": 0.75, "top2_accuracy": 0.9, "macro_roc_auc": 0.85},
-        {"accuracy": 0.9, "macro_f1": 0.8, "weighted_f1": 0.85, "top2_accuracy": 0.95, "macro_roc_auc": 0.9},
+        {
+            "accuracy": 0.8,
+            "macro_f1": 0.7,
+            "weighted_f1": 0.75,
+            "top2_accuracy": 0.9,
+            "macro_roc_auc": 0.85,
+        },
+        {
+            "accuracy": 0.9,
+            "macro_f1": 0.8,
+            "weighted_f1": 0.85,
+            "top2_accuracy": 0.95,
+            "macro_roc_auc": 0.9,
+        },
     ]
     agg = aggregate_fold_metrics(fold_metrics)
     assert agg["accuracy"]["mean"] == pytest.approx(0.85)

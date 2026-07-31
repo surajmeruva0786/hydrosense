@@ -2,7 +2,13 @@ from __future__ import annotations
 
 import numpy as np
 
-from src.data.transforms import MinMaxScale, PadOrTrim, ToChannelsFirst, ZScoreNormalize, build_default_transform
+from src.data.transforms import (
+    MinMaxScale,
+    PadOrTrim,
+    ToChannelsFirst,
+    ZScoreNormalize,
+    build_default_transform,
+)
 
 
 def test_pad_or_trim_pads_short_and_trims_long():

@@ -108,9 +108,13 @@ def _train_one_class(
     set_seed(seed)
 
     data_min, data_max = float(clips.min()), float(clips.max())
-    norm = (clips - data_min) / (data_max - data_min + 1e-8)  # -> [0, 1] for the sigmoid-activated networks
+    norm = (clips - data_min) / (
+        data_max - data_min + 1e-8
+    )  # -> [0, 1] for the sigmoid-activated networks
 
-    framed = np.stack([frame_waveform(c, frame_samples) for c in norm])  # (N, seq_len, frame_samples)
+    framed = np.stack(
+        [frame_waveform(c, frame_samples) for c in norm]
+    )  # (N, seq_len, frame_samples)
     x = torch.as_tensor(framed, dtype=torch.float32, device=device)
     n_samples, seq_len, feature_dim = x.shape
 
@@ -118,8 +122,12 @@ def _train_one_class(
     mse = nn.MSELoss()
     bce = nn.BCEWithLogitsLoss()
 
-    opt_er = torch.optim.Adam(list(model.embedder.parameters()) + list(model.recovery.parameters()), lr=lr)
-    opt_gs = torch.optim.Adam(list(model.generator.parameters()) + list(model.supervisor.parameters()), lr=lr)
+    opt_er = torch.optim.Adam(
+        list(model.embedder.parameters()) + list(model.recovery.parameters()), lr=lr
+    )
+    opt_gs = torch.optim.Adam(
+        list(model.generator.parameters()) + list(model.supervisor.parameters()), lr=lr
+    )
     opt_d = torch.optim.Adam(model.discriminator.parameters(), lr=lr)
 
     def batches():
@@ -141,7 +149,9 @@ def _train_one_class(
             loss.backward()
             opt_er.step()
         if epoch % max(1, phase1_epochs // 5) == 0:
-            logger.info("  [phase 1/3] epoch %d/%d recon_loss=%.5f", epoch + 1, phase1_epochs, loss.item())
+            logger.info(
+                "  [phase 1/3] epoch %d/%d recon_loss=%.5f", epoch + 1, phase1_epochs, loss.item()
+            )
 
     # --- Phase 2: supervisor pretraining on real latent dynamics ---
     phase2_epochs = max(1, epochs // 3)
@@ -155,7 +165,12 @@ def _train_one_class(
             loss.backward()
             opt_gs.step()
         if epoch % max(1, phase2_epochs // 5) == 0:
-            logger.info("  [phase 2/3] epoch %d/%d supervised_loss=%.5f", epoch + 1, phase2_epochs, loss.item())
+            logger.info(
+                "  [phase 2/3] epoch %d/%d supervised_loss=%.5f",
+                epoch + 1,
+                phase2_epochs,
+                loss.item(),
+            )
 
     # --- Phase 3: joint adversarial training ---
     phase3_epochs = max(1, epochs - phase1_epochs - phase2_epochs)
@@ -212,15 +227,26 @@ def _train_one_class(
 
         if epoch % max(1, phase3_epochs // 10) == 0:
             logger.info(
-                "  [phase 3/3] epoch %d/%d g_loss=%.4f d_loss=%.4f", epoch + 1, phase3_epochs, g_loss.item(), d_loss.item()
+                "  [phase 3/3] epoch %d/%d g_loss=%.4f d_loss=%.4f",
+                epoch + 1,
+                phase3_epochs,
+                g_loss.item(),
+                d_loss.item(),
             )
 
-    norm_stats = {"data_min": data_min, "data_max": data_max, "frame_samples": frame_samples, "seq_len": seq_len}
+    norm_stats = {
+        "data_min": data_min,
+        "data_max": data_max,
+        "frame_samples": frame_samples,
+        "seq_len": seq_len,
+    }
     return model, norm_stats
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
     parser.add_argument("--classes", nargs="+", default=["D", "E"])
     parser.add_argument("--metadata_csv", type=str, default="data/raw/shipsear/metadata.csv")
     parser.add_argument("--epochs", type=int, default=5000)
@@ -231,7 +257,9 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--sample_rate", type=int, default=16000)
     parser.add_argument("--frame_samples", type=int, default=DEFAULT_FRAME_SAMPLES)
     parser.add_argument("--output_dir", type=str, default="data/synthetic")
-    parser.add_argument("--device", type=str, default="cuda" if torch.cuda.is_available() else "cpu")
+    parser.add_argument(
+        "--device", type=str, default="cuda" if torch.cuda.is_available() else "cpu"
+    )
     parser.add_argument("--seed", type=int, default=42)
     return parser.parse_args()
 
@@ -243,8 +271,12 @@ def main() -> None:
 
     for class_name in args.classes:
         logger.info("=== Training TimeGAN for class '%s' ===", class_name)
-        clips = extract_class_clips(args.metadata_csv, class_name, args.sample_rate, args.clip_seconds, args.seed)
-        logger.info("Extracted %d clips of %.1fs for class '%s'", len(clips), args.clip_seconds, class_name)
+        clips = extract_class_clips(
+            args.metadata_csv, class_name, args.sample_rate, args.clip_seconds, args.seed
+        )
+        logger.info(
+            "Extracted %d clips of %.1fs for class '%s'", len(clips), args.clip_seconds, class_name
+        )
 
         model, norm_stats = _train_one_class(
             clips,

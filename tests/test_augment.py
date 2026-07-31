@@ -6,7 +6,16 @@ from src.training.augment import AugmentConfig, gaussian_noise, mixup, spec_augm
 
 
 def test_spec_augment_preserves_shape():
-    cfg = AugmentConfig.from_dict({"specaugment": {"freq_masks": 2, "freq_mask_width": 10, "time_masks": 2, "time_mask_width": 20}})
+    cfg = AugmentConfig.from_dict(
+        {
+            "specaugment": {
+                "freq_masks": 2,
+                "freq_mask_width": 10,
+                "time_masks": 2,
+                "time_mask_width": 20,
+            }
+        }
+    )
     x = torch.rand(4, 1, 40, 60)
     out = spec_augment(x, cfg.specaugment, prob=1.0)
     assert out.shape == x.shape

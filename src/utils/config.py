@@ -36,7 +36,12 @@ DEFAULT_CONFIG: dict[str, Any] = {
     },
     "augmentation": {
         "prob": 0.5,
-        "specaugment": {"freq_masks": 2, "freq_mask_width": 20, "time_masks": 2, "time_mask_width": 40},
+        "specaugment": {
+            "freq_masks": 2,
+            "freq_mask_width": 20,
+            "time_masks": 2,
+            "time_mask_width": 40,
+        },
         "mixup_alpha": 0.2,
         "gaussian_noise_std": 0.005,
     },

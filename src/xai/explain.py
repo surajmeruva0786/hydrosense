@@ -31,7 +31,10 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from src.data.transforms import build_default_transform  # noqa: E402
 from src.models.registry import build_model  # noqa: E402
-from src.preprocessing.representations import compute_representation, expected_num_frames  # noqa: E402
+from src.preprocessing.representations import (  # noqa: E402
+    compute_representation,
+    expected_num_frames,
+)
 from src.preprocessing.segmentation import segment_and_filter_silence  # noqa: E402
 from src.preprocessing.signal_conditioning import condition_signal  # noqa: E402
 from src.training.checkpoint import load_checkpoint  # noqa: E402
@@ -44,11 +47,18 @@ logger = get_logger("xai.explain")
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
     parser.add_argument("--checkpoint", type=str, required=True)
     parser.add_argument("--audio_file", type=str, required=True)
     parser.add_argument("--output_dir", type=str, required=True)
-    parser.add_argument("--processed_dir", type=str, default="data/processed", help="Used to draw a SHAP background sample")
+    parser.add_argument(
+        "--processed_dir",
+        type=str,
+        default="data/processed",
+        help="Used to draw a SHAP background sample",
+    )
     parser.add_argument("--skip_shap", action="store_true")
     parser.add_argument("--n_shap_background", type=int, default=30)
     parser.add_argument("--device", type=str, default="cpu")
@@ -67,7 +77,9 @@ def load_and_prepare_clip(audio_file: str, config: dict) -> tuple[np.ndarray, np
         conditioned, sr, segment_length_s=config["segment_length"], overlap=0.0
     )
     if not segments:
-        raise ValueError(f"No usable (non-silent) {config['segment_length']}s segment found in {audio_file}")
+        raise ValueError(
+            f"No usable (non-silent) {config['segment_length']}s segment found in {audio_file}"
+        )
 
     seg = segments[0].waveform
     rep = compute_representation(seg, sr, config["representation"])
@@ -80,7 +92,11 @@ def main() -> None:
     output_dir.mkdir(parents=True, exist_ok=True)
 
     checkpoint_path = Path(args.checkpoint)
-    run_dir = checkpoint_path.parent if (checkpoint_path.parent / "config.yaml").exists() else checkpoint_path.parent.parent
+    run_dir = (
+        checkpoint_path.parent
+        if (checkpoint_path.parent / "config.yaml").exists()
+        else checkpoint_path.parent.parent
+    )
     config = load_config(run_dir / "config.yaml")
 
     model = build_model(config).to(args.device)
@@ -99,7 +115,9 @@ def main() -> None:
     top3_idx = probs.argsort()[::-1][:3]
     prediction = {
         "predicted_class": class_names[int(top3_idx[0])],
-        "top3": [{"class_name": class_names[int(i)], "confidence": float(probs[i])} for i in top3_idx],
+        "top3": [
+            {"class_name": class_names[int(i)], "confidence": float(probs[i])} for i in top3_idx
+        ],
     }
     with (output_dir / "prediction.json").open("w", encoding="utf-8") as f:
         json.dump(prediction, f, indent=2)
@@ -125,14 +143,20 @@ def main() -> None:
     plt.savefig(output_dir / "gradcam_overlay.png", dpi=120)
     plt.close()
 
-    sanity = acoustic_sanity_check(x[0, 0].detach().cpu().numpy(), heatmap, sample_rate=config["sample_rate"])
+    sanity = acoustic_sanity_check(
+        x[0, 0].detach().cpu().numpy(), heatmap, sample_rate=config["sample_rate"]
+    )
     with (output_dir / "spectral_peaks.json").open("w", encoding="utf-8") as f:
         json.dump(sanity, f, indent=2)
     logger.info("Acoustic sanity check: %s", sanity)
 
     manifest_path = Path(args.processed_dir) / config["representation"] / "manifest.csv"
     if args.skip_shap or not manifest_path.exists():
-        logger.info("Skipping SHAP (skip_shap=%s, manifest exists=%s)", args.skip_shap, manifest_path.exists())
+        logger.info(
+            "Skipping SHAP (skip_shap=%s, manifest exists=%s)",
+            args.skip_shap,
+            manifest_path.exists(),
+        )
         return
 
     from src.data.dataset import ManifestDataset
@@ -140,10 +164,15 @@ def main() -> None:
 
     background_ds = ManifestDataset(manifest_path, transform=transform, split="train")
     if len(background_ds) < 2:
-        logger.warning("Not enough training segments (%d) to build a SHAP background; skipping SHAP.", len(background_ds))
+        logger.warning(
+            "Not enough training segments (%d) to build a SHAP background; skipping SHAP.",
+            len(background_ds),
+        )
         return
 
-    background = build_background(background_ds, n_background=min(args.n_shap_background, len(background_ds)))
+    background = build_background(
+        background_ds, n_background=min(args.n_shap_background, len(background_ds))
+    )
     shap_values = compute_shap_values(model, background, x.detach())
     profile = per_band_attribution(shap_values, explained_class)
 
@@ -157,7 +186,11 @@ def main() -> None:
     plt.close()
 
     with (output_dir / "shap_values.json").open("w", encoding="utf-8") as f:
-        json.dump({"class_name": class_names[explained_class], "per_band_importance": profile.tolist()}, f, indent=2)
+        json.dump(
+            {"class_name": class_names[explained_class], "per_band_importance": profile.tolist()},
+            f,
+            indent=2,
+        )
 
     logger.info("Wrote full XAI report to %s", output_dir)
 
