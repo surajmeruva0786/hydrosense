@@ -54,7 +54,12 @@ def make_recording_splits(
     train_df = df[df["split"] == "train"]
     class_counts = train_df["class_name"].value_counts()
     usable_folds = min(n_folds, int(class_counts.min())) if len(class_counts) else n_folds
-    usable_folds = max(usable_folds, 2)
+
+    if usable_folds < 2:
+        # Too few recordings per class for stratified CV (only expected on tiny
+        # dev/test fixtures) -- everything becomes a single fold-0 validation set.
+        df.loc[train_df.index, "fold"] = 0
+        return df
 
     skf = StratifiedKFold(n_splits=usable_folds, shuffle=True, random_state=seed)
     train_idx_array = train_df.index.to_numpy()
