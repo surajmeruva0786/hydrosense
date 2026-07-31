@@ -37,7 +37,7 @@ class HydroSenseSE(nn.Module):
         self.gap = nn.AdaptiveAvgPool2d(1)
         self.dropout1 = nn.Dropout(dropout1)
         self.fc1 = nn.Linear(channels[-1], hidden_dim)
-        self.relu = nn.ReLU(inplace=True)
+        self.relu = nn.ReLU(inplace=False)
         self.dropout2 = nn.Dropout(dropout2)
         self.fc2 = nn.Linear(hidden_dim, num_classes)
 

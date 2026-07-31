@@ -13,7 +13,7 @@ class ConvBlock(nn.Module):
         super().__init__()
         self.conv = nn.Conv2d(in_channels, out_channels, kernel_size, padding=kernel_size // 2)
         self.bn = nn.BatchNorm2d(out_channels)
-        self.relu = nn.ReLU(inplace=True)
+        self.relu = nn.ReLU(inplace=False)
         self.pool = nn.MaxPool2d(pool)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -35,7 +35,7 @@ class SEBlock(nn.Module):
         self.avg_pool = nn.AdaptiveAvgPool2d(1)
         self.fc = nn.Sequential(
             nn.Linear(channels, hidden, bias=False),
-            nn.ReLU(inplace=True),
+            nn.ReLU(inplace=False),
             nn.Linear(hidden, channels, bias=False),
             nn.Sigmoid(),
         )
@@ -54,7 +54,7 @@ class SEConvBlock(nn.Module):
         super().__init__()
         self.conv = nn.Conv2d(in_channels, out_channels, kernel_size, padding=kernel_size // 2)
         self.bn = nn.BatchNorm2d(out_channels)
-        self.relu = nn.ReLU(inplace=True)
+        self.relu = nn.ReLU(inplace=False)
         self.se = SEBlock(out_channels, reduction=se_reduction)
         self.pool = nn.MaxPool2d(pool)
 
