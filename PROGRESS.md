@@ -11,7 +11,7 @@ verified end-to-end against a synthetic hydrophone-audio generator
 benchmark numbers in the README (§16) are targets, not measured results —
 that stays true until someone runs training against the real corpus.
 
-## Status: 11 of 15 phases complete (steps 1-44 committed and pushed)
+## Status: 12 of 15 phases complete (steps 1-47 committed and pushed)
 
 | # | Phase | Status |
 |---|---|---|
@@ -26,9 +26,9 @@ that stays true until someone runs training against the real corpus.
 | 8 | XAI (Grad-CAM, SHAP DeepExplainer, spectral peaks, explain.py) | ✅ done |
 | 9 | Streamlit demo app | ✅ done |
 | 10 | Tests (39 pytest tests, all passing) | ✅ done |
-| 11 | CI/CD (GitHub Actions) | 🟡 in progress — ci.yml added; Dockerfile/docker-compose/Makefile/pre-commit still open |
-| 12 | Notebooks (EDA, representations, TimeGAN validation, XAI analysis) | ⬜ not started |
-| 13 | Docs polish (CONTRIBUTING, CHANGELOG, data/README, DEPLOYMENT, env.yml, README status update) | ⬜ not started |
+| 11 | CI/CD (GitHub Actions, Dockerfile, docker-compose, Makefile, pre-commit) | ✅ done |
+| 12 | Notebooks (EDA, representations, TimeGAN validation, XAI analysis) | 🟡 in progress — all 4 written and executed against synthetic data; committing next |
+| 13 | Docs polish (CONTRIBUTING, CHANGELOG, data/README, DEPLOYMENT, env.yml, README status update) | 🟡 in progress — all files drafted; committing next |
 | 14 | Integration test + release tag (full reinstall from requirements-dev.txt, full pytest run, v0.1.0 tag) | ⬜ not started |
 
 Every phase above (0-10) was smoke-tested end-to-end in a local `.venv`
@@ -48,40 +48,43 @@ assumed correct. Notable bugs found and fixed along the way:
   tries `matplotlib.colormaps[name]` first (step 37).
 - `.streamlit/config.toml` had a self-contradicting CORS/XSRF config
   (step 43).
+- The naive `Dockerfile` (`pip install -r requirements.txt` directly) built
+  a 12.7GB image because PyPI's default `torch`/`torchaudio` wheels pull in
+  the full CUDA toolkit even in a CPU-only container. Fixed in step 45 by
+  installing `torch`/`torchaudio` from PyTorch's CPU-only wheel index
+  first; final image is 5.78GB. Verified: `docker build` succeeds,
+  container starts, reports `healthy`, `GET /_stcore/health` → 200.
+- `train_timegan.py`'s `--metadata_csv` has no relationship to
+  `--output_dir`/other paths — it defaults to
+  `data/raw/shipsear/metadata.csv` and must be passed explicitly when
+  pointing at a different corpus location (hit while writing
+  `03_timegan_validation.ipynb`, step 48).
 
-Local dev venv at `Z:\hydrosense\.venv` has numpy/scipy/pandas/scikit-learn/
-librosa/soundfile/torch(cpu)/shap/streamlit/pytest/ruff/black installed —
-reuse it rather than reinstalling from scratch. `tensorflow`/
-`tensorflow-hub` (needed only for HydroSense-TL / YAMNet) are **not yet
-installed** there.
+Local dev venv at `Z:\hydrosense\.venv` now also has
+`nbformat`/`nbclient`/`ipykernel` installed (for executing the notebooks
+added in step 48) on top of the stack noted above. `tensorflow`/
+`tensorflow-hub` (needed only for HydroSense-TL / YAMNet) are **still not
+installed** in the local venv, though they are present in the Docker image
+(step 45) since `requirements.txt` pulls them in for the app.
 
 ## What's left (in order)
 
-1. **Finish Phase 11**: Dockerfile, docker-compose.yml, .dockerignore,
-   Makefile, `.pre-commit-config.yaml`. Verify `docker build` succeeds.
-2. **Phase 12**: four notebooks under `notebooks/` — EDA, representation
-   comparison, TimeGAN validation walkthrough, XAI deep dive. Should import
-   from `src/` rather than duplicating logic, and run against the synthetic
-   dataset by default.
-3. **Phase 13**: `CONTRIBUTING.md`, `CHANGELOG.md`, `data/README.md`
-   (explains the ShipsEar access-request process + synthetic fallback),
-   `DEPLOYMENT.md` (Streamlit Community Cloud / HF Spaces / Docker), and
-   `environment.yml`. Update the main `README.md` "Results" section (§16) to
-   be explicit that the numbers are targets pending a real training run, and
-   correct the HydroSense-Base param count (README says "~480k"; actual
-   `HydroSenseBase(num_classes=5)` is 422,341 params, `HydroSenseSE` is
-   433,221 — see step 26).
-4. **Phase 14**: reinstall the venv strictly from `requirements-dev.txt`
+1. **Phase 13 commits**: `CONTRIBUTING.md`, `CHANGELOG.md`,
+   `data/README.md`, `DEPLOYMENT.md`, `environment.yml`, and the
+   README.md fixes (§7.1/§7.2 param counts, §16 results caveat, §15
+   project structure, placeholders) are all written — just need
+   committing/pushing.
+2. **Phase 14**: reinstall the venv strictly from `requirements-dev.txt`
    (currently a hand-rolled subset was installed incrementally), run the
    full pytest suite + `ruff check` + `black --check` clean, run one
    complete pipeline pass on synthetic data end-to-end (preprocess -> train
-   all 3 models -> TimeGAN -> evaluate -> explain -> streamlit boots), then
-   tag `v0.1.0`.
-5. Decide whether to also actually install/exercise `tensorflow` +
+   -> evaluate -> explain -> streamlit boots), then tag `v0.1.0`.
+3. Decide whether to also actually install/exercise `tensorflow` +
    `tensorflow-hub` for a HydroSense-TL smoke test (currently the TL code
    path — `src/models/hydrosense_tl.py`, `_train_tl` in `train.py` — is
-   written but has not been executed, unlike Base/SE which have been run
-   end-to-end).
+   written but has not been executed locally, unlike Base/SE which have
+   been run end-to-end; it *is* installed and importable inside the Docker
+   image built in step 45).
 
 ## Working method (for continuity)
 
@@ -90,4 +93,13 @@ Each unit of work: implement → smoke-test against synthetic data in
 them anyway to keep the working tree clean) → `git add` the source files
 only → commit with a message noting what was verified → `git push origin
 main`. Commit messages are numbered "(step N/~110)" — continue that
-numbering (currently at step 44) rather than restarting it.
+numbering (currently at step 48) rather than restarting it.
+
+Notebooks under `notebooks/` are executed (not just written) before commit
+via `nbclient`, so the committed `.ipynb` files carry real output —
+plots, subprocess logs, prediction/score JSON — from a run against the
+synthetic dataset. Re-run with `jupyter nbconvert --execute --inplace
+notebooks/<name>.ipynb` (or equivalent) after any change to keep outputs
+current. Each notebook's heavier pipeline steps use their own scratch
+directory (`notebooks/.tmp_nb0N/`, gitignored) so notebooks don't
+interfere with each other or with `data/`.
