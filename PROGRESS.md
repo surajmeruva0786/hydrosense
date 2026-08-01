@@ -11,7 +11,7 @@ verified end-to-end against a synthetic hydrophone-audio generator
 benchmark numbers in the README (§16) are targets, not measured results —
 that stays true until someone runs training against the real corpus.
 
-## Status: 12 of 15 phases complete (steps 1-47 committed and pushed)
+## Status: 13 of 15 phases complete (steps 1-49 committed and pushed)
 
 | # | Phase | Status |
 |---|---|---|
@@ -27,7 +27,7 @@ that stays true until someone runs training against the real corpus.
 | 9 | Streamlit demo app | ✅ done |
 | 10 | Tests (39 pytest tests, all passing) | ✅ done |
 | 11 | CI/CD (GitHub Actions, Dockerfile, docker-compose, Makefile, pre-commit) | ✅ done |
-| 12 | Notebooks (EDA, representations, TimeGAN validation, XAI analysis) | 🟡 in progress — all 4 written and executed against synthetic data; committing next |
+| 12 | Notebooks (EDA, representations, TimeGAN validation, XAI analysis) | ✅ done |
 | 13 | Docs polish (CONTRIBUTING, CHANGELOG, data/README, DEPLOYMENT, env.yml, README status update) | 🟡 in progress — all files drafted; committing next |
 | 14 | Integration test + release tag (full reinstall from requirements-dev.txt, full pytest run, v0.1.0 tag) | ⬜ not started |
 
@@ -73,7 +73,7 @@ installed** in the local venv, though they are present in the Docker image
    `data/README.md`, `DEPLOYMENT.md`, `environment.yml`, and the
    README.md fixes (§7.1/§7.2 param counts, §16 results caveat, §15
    project structure, placeholders) are all written — just need
-   committing/pushing.
+   committing/pushing. (In progress.)
 2. **Phase 14**: reinstall the venv strictly from `requirements-dev.txt`
    (currently a hand-rolled subset was installed incrementally), run the
    full pytest suite + `ruff check` + `black --check` clean, run one
