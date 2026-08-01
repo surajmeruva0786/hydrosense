@@ -11,7 +11,11 @@ verified end-to-end against a synthetic hydrophone-audio generator
 benchmark numbers in the README (§16) are targets, not measured results —
 that stays true until someone runs training against the real corpus.
 
-## Status: 14 of 15 phases complete (steps 1-52 committed and pushed)
+## Status: 15 of 15 phases complete — v0.1.0 tagged (steps 1-55 committed and pushed)
+
+Project complete. Every phase in the original build-out is implemented,
+tested, and pushed; `v0.1.0` is tagged on `main`. See §"Phase 14" below for
+what the final integration test verified.
 
 | # | Phase | Status |
 |---|---|---|
@@ -29,7 +33,7 @@ that stays true until someone runs training against the real corpus.
 | 11 | CI/CD (GitHub Actions, Dockerfile, docker-compose, Makefile, pre-commit) | ✅ done |
 | 12 | Notebooks (EDA, representations, TimeGAN validation, XAI analysis) | ✅ done |
 | 13 | Docs polish (CONTRIBUTING, CHANGELOG, data/README, DEPLOYMENT, env.yml, README status update) | ✅ done |
-| 14 | Integration test + release tag (full reinstall from requirements-dev.txt, full pytest run, v0.1.0 tag) | ⬜ not started |
+| 14 | Integration test + release tag (full reinstall from requirements-dev.txt, full pytest run, v0.1.0 tag) | ✅ done |
 
 Every phase above (0-10) was smoke-tested end-to-end in a local `.venv`
 against synthetic data before being committed — not just written and
@@ -59,27 +63,58 @@ assumed correct. Notable bugs found and fixed along the way:
   `data/raw/shipsear/metadata.csv` and must be passed explicitly when
   pointing at a different corpus location (hit while writing
   `03_timegan_validation.ipynb`, step 48).
+- `src/preprocessing/run.py --representation` excluded `"waveform"` from
+  its `choices`, even though `compute_representation` has always supported
+  it and `train.py::_train_tl` hardcodes looking for
+  `<processed_dir>/waveform/manifest.csv` — there was no documented way to
+  produce that manifest, so **HydroSense-TL could never actually be
+  trained end-to-end via the CLI**. Fixed in step 54. Verified end-to-end
+  in the Phase 14 integration test (see below): preprocess with
+  `--representation waveform` → `train.py --model hydrosense_tl
+  --representation waveform` → `macro_f1=0.74` after 2 epochs on the
+  40-recording synthetic corpus (not a benchmark number — see
+  `data/README.md`, just proof the path works).
 
-Local dev venv at `Z:\hydrosense\.venv` now also has
-`nbformat`/`nbclient`/`ipykernel` installed (for executing the notebooks
-added in step 48) on top of the stack noted above. `tensorflow`/
-`tensorflow-hub` (needed only for HydroSense-TL / YAMNet) are **still not
-installed** in the local venv, though they are present in the Docker image
-(step 45) since `requirements.txt` pulls them in for the app.
+## Phase 14: integration test (what was verified)
 
-## What's left (in order)
+A fresh venv was created (`python -m venv`, separate from the long-lived
+`Z:\hydrosense\.venv`) and populated **strictly** from
+`requirements-dev.txt` with no hand-added packages, to prove the pinned
+dependency set is actually sufficient — resuming an install that gets
+interrupted mid-way (e.g. a killed process) is safe: re-running `pip
+install -r requirements-dev.txt` picks up from the wheel cache and
+finishes cleanly. In that venv, from `Z:\hydrosense`:
 
-1. **Phase 14**: reinstall the venv strictly from `requirements-dev.txt`
-   (currently a hand-rolled subset was installed incrementally), run the
-   full pytest suite + `ruff check` + `black --check` clean, run one
-   complete pipeline pass on synthetic data end-to-end (preprocess -> train
-   -> evaluate -> explain -> streamlit boots), then tag `v0.1.0`.
-2. Decide whether to also actually install/exercise `tensorflow` +
-   `tensorflow-hub` for a HydroSense-TL smoke test (currently the TL code
-   path — `src/models/hydrosense_tl.py`, `_train_tl` in `train.py` — is
-   written but has not been executed locally, unlike Base/SE which have
-   been run end-to-end; it *is* installed and importable inside the Docker
-   image built in step 45).
+- `ruff check src tests app scripts` → clean.
+- `black --check src tests app scripts` → clean (56 files unchanged).
+- `pytest tests/ -v` → **39 passed**, 3 warnings (benign librosa
+  n_fft-too-large-for-short-test-signal warnings).
+- Full synthetic-data pipeline, end-to-end, in a scratch directory
+  (`release_check/`, deleted afterward — never committed):
+  generate synthetic corpus (40 recordings) → preprocess (mel
+  representation, 2 folds) → train `hydrosense_base` (2 folds × 3 epochs)
+  → train `hydrosense_se` (2 folds × 3 epochs) → evaluate on the held-out
+  test split → `src.xai.explain` (prediction + Grad-CAM + acoustic sanity
+  check + SHAP) → `train_timegan` (classes D, E, 30 epochs) →
+  `sample_timegan` → `validate_synthetic` (PCA/t-SNE + discriminative/
+  predictive scores) → preprocess with `--representation waveform` →
+  `download_yamnet.py` (network access to tfhub.dev confirmed) → train
+  `hydrosense_tl` end-to-end (found + fixed the CLI bug above) →
+  `streamlit run app/streamlit_app.py` boots and `GET /_stcore/health` →
+  200. Every stage in the README's documented pipeline (§14 Usage) now
+  runs, including the previously-unexercised HydroSense-TL path.
+- `docker build` (Phase 11, step 45) already verified separately: image
+  builds, container starts, reports `healthy`, health endpoint → 200.
+
+No further "what's left" — the project is deploy-ready (Docker image
+builds and serves; `DEPLOYMENT.md` covers 3 hosting paths) and
+publish-ready (README/CONTRIBUTING/CHANGELOG/LICENSE/data-README all in
+place, CI green, tests green, tagged release). The one honest gap that
+remains **by design, not by omission**: no run against the real ShipsEar
+corpus has happened in this environment, because that corpus is
+access-gated (§6, `data/README.md`) — README §16's numbers stay marked as
+literature targets until someone with dataset access runs
+`src.training.train` to completion.
 
 ## Working method (for continuity)
 
@@ -87,8 +122,11 @@ Each unit of work: implement → smoke-test against synthetic data in
 `.venv` → clean up generated test artifacts (they're gitignored, but delete
 them anyway to keep the working tree clean) → `git add` the source files
 only → commit with a message noting what was verified → `git push origin
-main`. Commit messages are numbered "(step N/~110)" — continue that
-numbering (currently at step 48) rather than restarting it.
+main`. Commit messages were numbered "(step N/~110)" through the whole
+build; final count was step 55 (v0.1.0 tag). If this project is picked
+back up for post-0.1.0 work, it's reasonable to restart numbering or drop
+it — the original estimate was for the initial build-out, which is now
+complete.
 
 Notebooks under `notebooks/` are executed (not just written) before commit
 via `nbclient`, so the committed `.ipynb` files carry real output —
