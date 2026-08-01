@@ -7,6 +7,9 @@
 ![TensorFlow](https://img.shields.io/badge/TensorFlow-2.16-orange)
 ![License](https://img.shields.io/badge/License-MIT-green)
 ![Status](https://img.shields.io/badge/Status-Research-yellow)
+[![CI](https://github.com/surajmeruva0786/hydrosense/actions/workflows/ci.yml/badge.svg)](https://github.com/surajmeruva0786/hydrosense/actions/workflows/ci.yml)
+
+See also: [`CONTRIBUTING.md`](CONTRIBUTING.md) · [`CHANGELOG.md`](CHANGELOG.md) · [`DEPLOYMENT.md`](DEPLOYMENT.md) · [`data/README.md`](data/README.md) · [`PROGRESS.md`](PROGRESS.md)
 
 An end-to-end deep learning pipeline that classifies surface vessels from their underwater radiated noise (URN), with explainability built in. The system ingests raw passive sonar recordings, produces time–frequency representations, classifies the vessel category using a convolutional neural network, and generates per-prediction explanations via Grad-CAM and SHAP — telling an operator not just *what* the model heard, but *which frequency bands and time intervals* drove the decision.
 
@@ -212,11 +215,13 @@ Input: (1, 128, 313)
 └── Dense(5) + Softmax
 ```
 
-**Parameters**: ~480 k
+**Parameters**: 422,341 (measured from `HydroSenseBase(num_classes=5)`, mel representation, `configs/hydrosense_base.yaml` defaults)
 
 ### 7.2 HydroSense-SE
 
 Identical to Base but inserts a **Squeeze-and-Excitation (SE) block** after each convolutional stage, allowing the network to re-weight channels based on global context. Improves recall on under-represented classes in our experiments.
+
+**Parameters**: 433,221 (measured from `HydroSenseSE(num_classes=5)`, mel representation, `configs/hydrosense_se.yaml` defaults)
 
 ### 7.3 HydroSense-TL
 
@@ -328,7 +333,7 @@ This is the artifact intended for live demonstration to NSTL scientists.
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/<your-username>/HydroSense.git
+git clone https://github.com/surajmeruva0786/hydrosense.git
 cd HydroSense
 
 # 2. Create a conda environment
@@ -433,53 +438,86 @@ streamlit run app/streamlit_app.py
 
 ```
 HydroSense/
+├── .github/workflows/
+│   └── ci.yml                      # Lint, format-check, tests, e2e smoke test
 ├── app/
-│   └── streamlit_app.py            # Interactive demo
+│   ├── streamlit_app.py            # Interactive demo
+│   └── components.py                # Reusable widgets/plot helpers
 ├── configs/
 │   ├── hydrosense_base.yaml
 │   ├── hydrosense_se.yaml
 │   └── hydrosense_tl.yaml
 ├── data/
-│   ├── raw/                        # Raw ShipsEar audio (gitignored)
-│   ├── processed/                  # Pre-processed spectrograms
-│   ├── synthetic/                  # TimeGAN-generated samples
-│   └── splits/                     # Train / val / test CSVs
+│   ├── README.md                   # ShipsEar access process + synthetic fallback
+│   ├── raw/                        # Raw ShipsEar / synthetic audio (gitignored)
+│   ├── processed/                  # Pre-processed spectrograms (gitignored)
+│   ├── synthetic/                  # TimeGAN checkpoints + samples (gitignored)
+│   └── splits/                     # Train / CV / test CSVs (gitignored)
 ├── notebooks/
 │   ├── 01_eda.ipynb                # Dataset exploration
 │   ├── 02_representations.ipynb    # Spectrogram comparisons
-│   ├── 03_timegan_validation.ipynb # Synthetic data validation
+│   ├── 03_timegan_validation.ipynb # Synthetic data validation walkthrough
 │   └── 04_xai_analysis.ipynb       # XAI deep dive
 ├── runs/                           # Training outputs (gitignored)
-├── results/                        # Final figures and metrics
+├── results/                        # Final figures and metrics (gitignored)
 ├── scripts/
+│   ├── generate_synthetic_dataset.py
 │   ├── verify_dataset.py
 │   └── download_yamnet.py
 ├── src/
 │   ├── augmentation/
-│   │   └── train_timegan.py
+│   │   ├── timegan_networks.py
+│   │   ├── train_timegan.py
+│   │   ├── sample_timegan.py
+│   │   └── validate_synthetic.py
 │   ├── data/
 │   │   ├── dataset.py
+│   │   ├── synthetic.py
 │   │   └── transforms.py
 │   ├── evaluation/
-│   │   └── evaluate.py
+│   │   ├── evaluate.py
+│   │   └── report.py
 │   ├── models/
 │   │   ├── hydrosense_base.py
 │   │   ├── hydrosense_se.py
-│   │   └── hydrosense_tl.py
+│   │   ├── hydrosense_tl.py
+│   │   └── registry.py
 │   ├── preprocessing/
-│   │   └── run.py
+│   │   ├── run.py
+│   │   ├── signal_conditioning.py
+│   │   ├── segmentation.py
+│   │   ├── representations.py
+│   │   └── splits.py
 │   ├── training/
-│   │   └── train.py
+│   │   ├── train.py
+│   │   ├── losses.py
+│   │   ├── augment.py
+│   │   ├── scheduler.py
+│   │   └── checkpoint.py
 │   ├── xai/
+│   │   ├── explain.py
 │   │   ├── gradcam.py
-│   │   └── shap_explainer.py
+│   │   ├── shap_explainer.py
+│   │   └── spectral_peaks.py
 │   └── utils/
 │       ├── seed.py
-│       └── metrics.py
+│       ├── metrics.py
+│       ├── config.py
+│       └── logging_utils.py
 ├── tests/
-│   └── test_dataset.py
+│   └── test_*.py                   # dataset, transforms, preprocessing, models, metrics, augment, gradcam
+├── .dockerignore
 ├── .gitignore
+├── .pre-commit-config.yaml
+├── CHANGELOG.md
+├── CONTRIBUTING.md
+├── DEPLOYMENT.md
+├── Dockerfile
+├── docker-compose.yml
+├── environment.yml
 ├── LICENSE
+├── Makefile
+├── PROGRESS.md
 ├── README.md
 ├── requirements.txt
 └── requirements-dev.txt
@@ -489,7 +527,7 @@ HydroSense/
 
 ## 16. Results
 
-> *Numbers below are the project's target benchmarks based on the published literature on ShipsEar. Replace with your measured results after training.*
+> **These numbers are targets, not measured results.** They are the project's target benchmarks, informed by the published literature on ShipsEar (Santos-Domínguez et al., 2016, and related work — see §20), not output from a training run against the real corpus. The real ShipsEar dataset is access-gated (§6) and has not yet been run through this pipeline in this environment; every module has instead been verified end-to-end against a synthetic hydrophone-audio generator (`src/data/synthetic.py`, see `data/README.md`), which is useful for confirming the code works but produces no acoustically meaningful accuracy numbers of its own. Once ShipsEar access is granted and `python -m src.training.train` is run to completion (README §14), replace the table and confusion matrix below with the real measured results and update this note.
 
 | Model            | Representation | Macro-F1     | Accuracy     | Top-2 Acc.   |
 |------------------|----------------|--------------|--------------|--------------|
@@ -562,9 +600,9 @@ If you use this work, please cite:
 ```bibtex
 @misc{hydrosense2026,
   title  = {HydroSense: Explainable Passive Sonar Vessel Classification},
-  author = {<Your Name>},
+  author = {Meruva, Suraj},
   year   = {2026},
-  howpublished = {\url{https://github.com/<your-username>/HydroSense}}
+  howpublished = {\url{https://github.com/surajmeruva0786/hydrosense}}
 }
 ```
 
@@ -588,10 +626,9 @@ The ShipsEar dataset is the property of the University of Vigo and is governed b
 
 ## 24. Contact
 
-**<Your Name>**
+**Suraj Meruva**
 B.Tech., Indian Institute of Information Technology, Naya Raipur
-Email: `<your.email@iiitnr.edu.in>`
-GitHub: [@<your-username>](https://github.com/<your-username>)
-LinkedIn: [linkedin.com/in/<your-username>](https://linkedin.com/in/<your-username>)
+Email: `meruva24102@iiitnr.edu.in`
+GitHub: [@surajmeruva0786](https://github.com/surajmeruva0786)
 
 For questions, collaboration, or internship discussions, please reach out via email.
