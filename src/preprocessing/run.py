@@ -47,7 +47,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--segment_length", type=float, default=10.0)
     parser.add_argument("--overlap", type=float, default=0.5)
     parser.add_argument(
-        "--representation", type=str, default="mel", choices=["mel", "log_mel", "cqt", "mfcc"]
+        "--representation",
+        type=str,
+        default="mel",
+        choices=["mel", "log_mel", "cqt", "mfcc", "waveform"],
     )
     parser.add_argument("--n_folds", type=int, default=5)
     parser.add_argument("--test_fraction", type=float, default=0.20)
