@@ -11,7 +11,7 @@ verified end-to-end against a synthetic hydrophone-audio generator
 benchmark numbers in the README (§16) are targets, not measured results —
 that stays true until someone runs training against the real corpus.
 
-## Status: 13 of 15 phases complete (steps 1-49 committed and pushed)
+## Status: 14 of 15 phases complete (steps 1-52 committed and pushed)
 
 | # | Phase | Status |
 |---|---|---|
@@ -28,7 +28,7 @@ that stays true until someone runs training against the real corpus.
 | 10 | Tests (39 pytest tests, all passing) | ✅ done |
 | 11 | CI/CD (GitHub Actions, Dockerfile, docker-compose, Makefile, pre-commit) | ✅ done |
 | 12 | Notebooks (EDA, representations, TimeGAN validation, XAI analysis) | ✅ done |
-| 13 | Docs polish (CONTRIBUTING, CHANGELOG, data/README, DEPLOYMENT, env.yml, README status update) | 🟡 in progress — all files drafted; committing next |
+| 13 | Docs polish (CONTRIBUTING, CHANGELOG, data/README, DEPLOYMENT, env.yml, README status update) | ✅ done |
 | 14 | Integration test + release tag (full reinstall from requirements-dev.txt, full pytest run, v0.1.0 tag) | ⬜ not started |
 
 Every phase above (0-10) was smoke-tested end-to-end in a local `.venv`
@@ -69,17 +69,12 @@ installed** in the local venv, though they are present in the Docker image
 
 ## What's left (in order)
 
-1. **Phase 13 commits**: `CONTRIBUTING.md`, `CHANGELOG.md`,
-   `data/README.md`, `DEPLOYMENT.md`, `environment.yml`, and the
-   README.md fixes (§7.1/§7.2 param counts, §16 results caveat, §15
-   project structure, placeholders) are all written — just need
-   committing/pushing. (In progress.)
-2. **Phase 14**: reinstall the venv strictly from `requirements-dev.txt`
+1. **Phase 14**: reinstall the venv strictly from `requirements-dev.txt`
    (currently a hand-rolled subset was installed incrementally), run the
    full pytest suite + `ruff check` + `black --check` clean, run one
    complete pipeline pass on synthetic data end-to-end (preprocess -> train
    -> evaluate -> explain -> streamlit boots), then tag `v0.1.0`.
-3. Decide whether to also actually install/exercise `tensorflow` +
+2. Decide whether to also actually install/exercise `tensorflow` +
    `tensorflow-hub` for a HydroSense-TL smoke test (currently the TL code
    path — `src/models/hydrosense_tl.py`, `_train_tl` in `train.py` — is
    written but has not been executed locally, unlike Base/SE which have
