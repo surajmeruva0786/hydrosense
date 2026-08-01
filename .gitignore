@@ -18,6 +18,7 @@ ENV/
 
 # Jupyter
 .ipynb_checkpoints/
+notebooks/.tmp_nb*/
 
 # Environment / secrets
 .env
